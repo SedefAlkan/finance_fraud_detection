@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>İşlem Risk Analizi</title>
+  <style>
+    /* Koyu, sade tema */
+    body { font-family: Arial, sans-serif; margin: 24px; background: #1e1e1e; color: #e5e5e5; }
+    h1 { margin: 0 0 16px; }
+
+    .center { max-width: 1000px; margin: 0 auto; }
+
+    /* Yükleme kartı */
+    .upload {
+      background: #2a2a2a;
+      border: 2px solid #444;
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    /* Buton satırı */
+    .upload .row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;  /* yükseklikleri eşitler */
+    }
+    @media (max-width: 720px){
+      .upload .row { flex-direction: column; }
+    }
+
+    /* Dosya butonu */
+    #fileInput { display: none; }
+    .file-btn {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      background: #333;
+      border: 1px solid #555;
+      color: #e5e5e5;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .file-btn:hover { background: #3a3a3a; border-color: #666; }
+
+    .file-name {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #aaa;
+      text-align: left;
+    }
+
+    /* Tahmin et butonu */
+    button {
+      min-height: 38px;
+      padding: 0 20px;
+      border: 0;
+      background: #3a6ff7;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #2e56c9; }
+
+    /* Tablo */
+    .card { background:#2a2a2a; border:1px solid #444; border-radius:12px; padding:16px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; table-layout: fixed; }
+    th, td { border: 1px solid #444; padding: 8px 10px; text-align: left; font-size: 14px; word-break: break-word; }
+    thead th { background: #333; position: sticky; top: 0; }
+    .row-fraud { background: #3b1a1a; }
+    .row-safe  { background: #1a2d1a; }
+    .small { font-size: 13px; color:#aaa; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; }
+    .pill-fraud { background:#ff5b5b; color:white; }
+    .pill-safe  { background:#2fbf71; color:white; }
+    a { color:#9abaff; text-decoration:none; }
+  </style>
+</head>
+<body class="center">
+  <h1>İşlem Risk Analizi</h1>
+
+  <div class="upload">
+    <form method="post" action="/predict" enctype="multipart/form-data">
+      <div class="row">
+        
+        <div style="flex:1">
+          <label class="file-btn" for="fileInput">📂 Dosya Yükle</label>
+          <input id="fileInput" type="file" name="file" accept=".csv" required />
+          <div id="fileName" class="file-name">Seçilen dosya yok</div>
+        </div>
+        
+        <button type="submit">Tahmin Et</button>
+      </div>
+
+      {% if has_results %}
+        <div style="margin-top:12px;">
+          <a href="/download"><button type="button">Sonuçları İndir (CSV)</button></a>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if error %}
+    <div class="card" style="border-color:#ff5b5b; margin-bottom: 16px;">
+      <b>Hata:</b> {{ error }}
+    </div>
+  {% endif %}
+
+  {% if has_results and rows and columns %}
+    <div class="card">
+      <div class="small" style="margin-bottom:6px;">
+        Kayıt sayısı: <b>{{ rows|length }}</b>
+        &nbsp;•&nbsp;
+        <span class="pill pill-fraud">Riskli</span>
+        <span class="pill pill-safe">Güvenli</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            {% for col in columns %}
+              <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr class="{{ 'row-fraud' if r['Prediction'] == 1 else 'row-safe' }}">
+              {% for col in columns %}
+                <td>
+                  {% if col == 'Fraud_Prob' %}
+                    {{ '%.3f'|format(r[col]) }}
+                  {% else %}
+                    {{ r[col] }}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <script>
+    // seçilen dosya adını göster
+    (function(){
+      const input = document.getElementById('fileInput');
+      const nameEl = document.getElementById('fileName');
+      input.addEventListener('change', () => {
+        nameEl.textContent = input.files[0] ? input.files[0].name : 'Seçilen dosya yok';
+      });
+    })();
+  </script>
+</body>
+</html>
